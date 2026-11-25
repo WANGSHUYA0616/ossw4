@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>달빛모퉁이 카페 매출 대시보드</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --primary: #92400e;
+            --primary-light: #fef3c7;
+            --primary-dark: #78350f;
+            --accent: #b45309;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Pretendard", "Noto Sans KR", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 1240px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 스타일 */
+        header {
+            background: linear-gradient(135deg, #78350f 0%, #92400e 50%, #b45309 100%);
+            color: #ffffff;
+            border-radius: var(--radius-lg);
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-title-box h1 {
+            font-size: 26px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title-box p {
+            font-size: 14px;
+            color: #fde68a;
+            margin-top: 6px;
+        }
+
+        .header-badge {
+            background-color: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 9999px;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* KPI 카드 그리드 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 20px 22px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kpi-value {
+            font-size: 25px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .kpi-value.highlight {
+            color: var(--primary);
+        }
+
+        /* 대시보드 메인 그리드 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .chart-container-large {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        .chart-container-medium {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        .two-column-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .two-column-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 테이블 스타일 */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            padding: 12px 14px;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #fbfcfe;
+        }
+
+        .top-rank-row td {
+            background-color: #fffbeb;
+        }
+
+        .table-total-row td {
+            background-color: #f1f5f9;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-medium { font-weight: 500; }
+        .font-bold { font-weight: 700; }
+        .text-amber-800 { color: #92400e; }
+
+        .day-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .day-badge.weekday {
+            background-color: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .day-badge.weekend {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            line-height: 28px;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .rank-1 { background-color: #fef08a; color: #854d0e; }
+        .rank-2 { background-color: #e2e8f0; color: #475569; }
+        .rank-3 { background-color: #fed7aa; color: #9a3412; }
+        .rank-4, .rank-5, .rank-6, .rank-7 { background-color: #f1f5f9; color: #64748b; }
+
+        .highlight-cell {
+            color: #b45309;
+            font-size: 15px;
+        }
+
+        .progress-bar-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-width: 110px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #d97706, #b45309);
+        }
+
+        .progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            min-width: 40px;
+        }
+
+        /* 푸터 */
+        footer {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 16px 0;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 대시보드 헤더 -->
+        <header>
+            <div class="header-title-box">
+                <h1>☕ 달빛모퉁이 카페 매출 대시보드</h1>
+                <p>가상의 동네 카페 30일간 판매량 및 매출 분석 리포트</p>
+            </div>
+            <div class="header-badge">
+                <span>📅 집계 기간:</span>
+                <span id="cafe-period-badge">2026.11.01 ~ 2026.11.30</span>
+            </div>
+        </header>
+
+        <!-- 핵심 KPI 카드 그리드 -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">💰 30일 총 매출액</div>
+                <div class="kpi-value highlight" id="kpi-total-revenue">-</div>
+                <div class="kpi-sub">총 30일간 합산 매출</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">📦 총 판매 수량</div>
+                <div class="kpi-value" id="kpi-total-qty">-</div>
+                <div class="kpi-sub">5개 메뉴 판매 합계</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">📈 일평균 매출액</div>
+                <div class="kpi-value" id="kpi-avg-revenue">-</div>
+                <div class="kpi-sub">일평균 86.8만원 기록</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">🏆 최고 인기 메뉴</div>
+                <div class="kpi-value" id="kpi-best-seller">-</div>
+                <div class="kpi-sub">판매 수량 1위 메뉴</div>
+            </div>
+        </div>
+
+        <!-- 메인 대시보드 그리드 -->
+        <div class="dashboard-grid">
+            <!-- 기능 ① 일별 매출 꺾은선 차트 -->
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">① 일별 매출 추이 (Line Chart)</div>
+                        <div class="card-subtitle">30일간 일별 총매출액 변동 추이 (주말 매출 급증 경향 반영)</div>
+                    </div>
+                </div>
+                <div class="chart-container-large">
+                    <canvas id="dailySalesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 하단 2단 그리드: ② 메뉴별 막대 차트 + ③ 요일별 평균 매출 표 -->
+            <div class="two-column-grid">
+                <!-- 기능 ② 메뉴별 판매량 막대 차트 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">② 메뉴 5종 판매량 (Bar Chart)</div>
+                            <div class="card-subtitle">30일 누적 메뉴별 판매 수량 비교</div>
+                        </div>
+                    </div>
+                    <div class="chart-container-medium">
+                        <canvas id="menuSalesChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 기능 ③ 요일별 평균 매출 표 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">③ 요일별 평균 매출 분석 (Table)</div>
+                            <div class="card-subtitle">요일별 영업일수, 총매출액 및 일평균 매출액 비교</div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>요일</th>
+                                    <th class="text-center">영업일수</th>
+                                    <th class="text-right">총 매출액</th>
+                                    <th class="text-right">평균 일매출</th>
+                                    <th class="text-center">순위</th>
+                                    <th>매출 비중</th>
+                                </tr>
+                            </thead>
+                            <tbody id="weekdayTableBody">
+                                <!-- chart.js에서 동적 렌더링 -->
+                            </tbody>
+                            <tfoot id="weekdayTableFoot">
+                                <!-- 합계/평균 행 동적 렌더링 -->
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 안내문구 -->
+        <footer>
+            <p>※ 본 대시보드는 실습 과제를 위해 제작된 가상의 동네 카페 데이터입니다. (실제 카페나 기업의 데이터가 아닙니다.)</p>
+            <p style="margin-top: 4px; font-size: 12px; color: #94a3b8;">파일 구성: index.html, data.js, chart.js | 별도 서버 및 라이브러리 설치 없이 바로 실행 가능</p>
+        </footer>
+    </div>
+
+    <!-- 데이터 및 차트 스크립트 로드 (설치 없이 실행 가능) -->
+    <script src="data.js"></script>
+    <script src="chart.js"></script>
+</body>
+</html>
+
